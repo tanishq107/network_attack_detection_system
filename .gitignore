@@ -58,6 +58,9 @@ backend/suricata/run/
 sample_pcaps/*
 !sample_pcaps/README.md
 
+# --- Local notes (not for GitHub) -----------------------------------------
+Network_Attack_Detection_Engine_Manual.txt
+
 # --- Editor / OS ----------------------------------------------------------
 .DS_Store
 Thumbs.db
