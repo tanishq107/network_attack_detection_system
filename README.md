@@ -6,10 +6,6 @@ real **Suricata** IDS), maps findings to **MITRE ATT&CK**, and produces
 **JSON / HTML / PDF** reports through a modern React dashboard with light and
 dark themes.
 
-```
-N · A · D · E
-NETWORK   ATTACK   DETECTION   ENGINE
-```
 
 ---
 
@@ -27,59 +23,10 @@ NETWORK   ATTACK   DETECTION   ENGINE
   per-alert detail. Rendered as HTML, downloadable as JSON or PDF.
 - **Dashboard** — totals, severity doughnut, category bar chart, alert
   timeline, per-alert table with severity pills. Charts re-theme with the UI.
-- **Light / dark themes** — persisted in `localStorage`, applied before React
-  mounts so there is no flash. Animated SVG network-mesh logo with a glowing
-  "N" and a packet pulsing along its diagonal.
 
+                                           |
 ---
 
-## Tech stack
-
-| Layer    | Tools                                                       |
-| -------- | ----------------------------------------------------------- |
-| Backend  | Python 3.14 · FastAPI · Scapy · SQLAlchemy · SQLite         |
-| IDS      | Suricata 7 (subprocess + `eve.json` tailer)                 |
-| Reports  | Jinja2 (HTML) · WeasyPrint (PDF) · stdlib `json`            |
-| Frontend | React 18 · Vite 5 · Tailwind CSS 3 · Chart.js 4             |
-| Tests    | pytest                                                      |
-
----
-
-## Project layout
-
-```
-backend/
-  api/main.py            FastAPI app + all REST endpoints
-  parsers/               PCAP → packets / flows  (Scapy PcapReader)
-  detectors/             Python detection modules
-  analyzers/             Summary, timeline, aggregation
-  threatintel/           IOC enrichment hooks
-  reports/               HTML / JSON / PDF report generators
-  live/
-    sniffer.py           Live AsyncSniffer + PcapWriter recording
-    suricata_live.py     Suricata subprocess + eve.json tailer
-  suricata/              Bundled rules + suricata.yaml template
-  database/              SQLAlchemy models & session factory
-  data/                  SQLite DB + stored uploads (gitignored)
-  tests/                 Detector unit tests
-
-frontend/
-  index.html             Title, favicon, pre-React no-flash theme script
-  tailwind.config.js     darkMode 'class' + brand palette
-  src/
-    App.jsx              Header (logo + theme toggle + upload), tabs,
-                         dashboard, alert table, Chart.js wiring
-    RulesView.jsx        Suricata rules CRUD + import + filter
-    LiveView.jsx         Live sniffer controls + status + alerts
-    useTheme.js          Light/dark hook (localStorage-backed)
-    index.css            Tailwind layers + .nade-* component classes
-
-docker/                  Optional Dockerfiles + compose
-docs/architecture.md     System diagram and "add a detector" guide
-sample_pcaps/            Drop test PCAPs here (gitignored)
-```
-
----
 
 ## Quick start
 
@@ -96,7 +43,7 @@ brew install suricata
 # Debian/Ubuntu
 sudo apt install suricata
 
-uvicorn api.main:app --reload --port 8000
+sudo uvicorn api.main:app --reload --port 8000
 ```
 
 Interactive API docs at **http://localhost:8000/docs**.
@@ -122,14 +69,6 @@ Production build:
 npm run build        # output in frontend/dist
 ```
 
-### 3. Try it from the CLI
-
-```bash
-curl -F "file=@sample_pcaps/example.pcap" http://localhost:8000/api/upload
-curl http://localhost:8000/api/alerts
-curl http://localhost:8000/api/summary
-curl -OJ "http://localhost:8000/api/report/1?format=html"
-```
 
 ---
 
@@ -189,58 +128,8 @@ curl -OJ "http://localhost:8000/api/report/1?format=html"
 
 Each detector returns alerts with severity, MITRE technique ID, and evidence.
 
-### Adding a detector
-1. Create `backend/detectors/my_thing.py` exposing a class with `name` and
-   `detect(packets)`.
-2. Add a MITRE entry in `backend/detectors/mitre_map.py`.
-3. Register it in `all_detectors()` inside `backend/detectors/__init__.py`.
-4. Add tests in `backend/tests/test_detectors.py`.
 
----
 
-## Database
-
-SQLite file at `backend/data/nade.db` (auto-created on first run).
-
-| Table     | Key columns                                                                 |
-| --------- | --------------------------------------------------------------------------- |
-| `uploads` | `id, filename, path, status, packet_count, created_at`                      |
-| `packets` | `upload_id, ts, src_ip, dst_ip, proto, sport, dport, len`                   |
-| `flows`   | `upload_id, 5-tuple, first_ts, last_ts, byte counts`                        |
-| `alerts`  | `upload_id, ts, severity, category, title, src_ip, dst_ip, mitre_id, evidence` |
-| `rules`   | `sid, name, category, source, enabled, mitre_id, rule_text`                 |
-
-Suricata alerts are categorized as `suricata:<sig_name>` so a re-run can purge
-prior Suricata alerts for the same upload before re-inserting (no duplicates).
-
----
-
-## Configuration
-
-| Variable                          | Purpose                                             |
-| --------------------------------- | --------------------------------------------------- |
-| `NADE_DATABASE_URL`               | Override SQLite path or use PostgreSQL              |
-| `NADE_SURICATA_BIN`               | Explicit path to the `suricata` binary              |
-| `NADE_BEACON_INCLUDE_STANDARD`    | Set to `1` to include 80/443/22/53/… in beaconing   |
-
----
-
-## Testing
-
-```bash
-cd backend
-pytest -q
-```
-
-Recommended datasets: **CICIDS2017**, **malware-traffic-analysis.net** PCAPs.
-
----
-
-## Docker (optional)
-
-```bash
-docker compose -f docker/docker-compose.yml up --build
-```
 
 ---
 
