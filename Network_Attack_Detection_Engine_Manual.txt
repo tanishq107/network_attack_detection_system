@@ -1,0 +1,323 @@
+================================================================================
+NADE — NETWORK ATTACK DETECTION ENGINE
+As-Built Manual  (updated 2026-06-10)
+================================================================================
+
+A self-contained platform that ingests PCAPs *and* live traffic, runs a hybrid
+detection stack (Python heuristics + real Suricata IDS), maps findings to MITRE
+ATT&CK, and produces JSON / HTML / PDF reports. Web UI: React + Tailwind with
+light / dark themes and an animated network-mesh "N" logo.
+
+--------------------------------------------------------------------------------
+1. GOAL
+--------------------------------------------------------------------------------
+Provide a single-binary, locally-runnable security analytics tool that can:
+  • Accept uploaded PCAP/PCAPNG files and parse them with Scapy.
+  • Sniff live traffic on a chosen network interface (with optional BPF filter).
+  • Detect common attacks via Python detectors AND a real Suricata subprocess.
+  • Store every packet / flow / alert in SQLite for later querying.
+  • Render an interactive dashboard with summary, timeline and per-alert tables.
+  • Export reports in HTML, JSON or PDF.
+  • Manage Suricata rules (bundled + custom + imported from URL/text).
+  • Download captured PCAPs from live sessions.
+
+--------------------------------------------------------------------------------
+2. TECH STACK (as actually shipped)
+--------------------------------------------------------------------------------
+Backend
+  • Python 3.14
+  • FastAPI (REST + file upload + streaming download)
+  • Scapy 2.5+  — PcapReader (offline), AsyncSniffer + PcapWriter (live)
+  • SQLAlchemy 2.x ORM
+  • SQLite     — file DB at  backend/data/nade.db
+  • Real Suricata 7   (/opt/homebrew/bin/suricata on macOS via Homebrew)
+  • WeasyPrint / ReportLab for PDF
+  • Pytest for the detector test suite
+
+Frontend
+  • React 18 + Vite 5
+  • Tailwind CSS 3 (with darkMode: 'class')
+  • Chart.js 4 + react-chartjs-2 (Doughnut + Bar)
+  • Inter font, custom design tokens, animated SVG logo
+  • Dev server proxy: /api → http://localhost:8000
+
+Removed from the original spec (not used in the shipped build):
+  PostgreSQL, PyShark, Redis, Celery, Docker. The project is intentionally
+  single-process and zero-infrastructure.
+
+--------------------------------------------------------------------------------
+3. FOLDER STRUCTURE  (actual)
+--------------------------------------------------------------------------------
+Network-Attack-Detection-Tool/
+├── backend/
+│   ├── api/
+│   │   └── main.py            FastAPI app, all REST endpoints
+│   ├── parsers/               PCAP -> packets / flows
+│   ├── detectors/             Python detection modules (see §5)
+│   ├── analyzers/             Summary, timeline, severity aggregation
+│   ├── threatintel/           Optional enrichment hooks
+│   ├── reports/               HTML / JSON / PDF generators (Jinja2 + WeasyPrint)
+│   ├── live/
+│   │   ├── sniffer.py         LiveSniffer singleton (AsyncSniffer + PcapWriter)
+│   │   └── suricata_live.py   Suricata subprocess + eve.json tailer
+│   ├── suricata/              Bundled rules + suricata.yaml templates
+│   ├── database/              SQLAlchemy models, session factory
+│   ├── data/
+│   │   ├── nade.db            SQLite database
+│   │   └── uploads/           Stored PCAPs (offline + live captures)
+│   ├── tests/                 7 pytest cases for detectors (all green)
+│   ├── config.py              Paths, ports, knobs (env-overridable)
+│   ├── requirements.txt
+│   └── .venv/                 Python 3.14 virtualenv
+├── frontend/
+│   ├── index.html             Title, favicon, theme no-flash script
+│   ├── tailwind.config.js     darkMode 'class' + brand palette + shadow-soft
+│   ├── src/
+│   │   ├── main.jsx
+│   │   ├── App.jsx            Header (NADE logo + theme toggle + upload),
+│   │   │                      tabs, dashboard, alert table, chart wiring
+│   │   ├── RulesView.jsx      Suricata Rules tab (CRUD + import + filter)
+│   │   ├── LiveView.jsx       Live Sniffer tab (start/stop, status, alerts)
+│   │   ├── useTheme.js        Hook: read/persist light|dark in localStorage
+│   │   └── index.css          Tailwind layers + .nade-* component classes
+│   └── dist/                  Vite production build output
+└── Network_Attack_Detection_Engine_Manual.txt   (this file)
+
+--------------------------------------------------------------------------------
+4. FEATURES  (shipped)
+--------------------------------------------------------------------------------
+  • PCAP upload (.pcap / .pcapng / .cap)
+  • Packet + flow extraction (Scapy PcapReader, streamed)
+  • Hybrid attack detection:
+      – Python heuristic detectors  (see §5)
+      – Real Suricata IDS pass on stored PCAP
+  • Live sniffer with optional BPF filter + optional concurrent Suricata IDS
+  • Live capture recording to PCAP (downloadable after stop)
+  • Per-upload Delete (cascades packets, flows, alerts, file, cached report)
+  • Refresh button on every tab (cache-busted, with "X s ago" stamp)
+  • Dashboard with Totals / By-Severity (doughnut) / By-Category (bar) /
+    Alert Timeline (bar) / sortable alert table with severity pills
+  • Reports: HTML preview, JSON download, PDF download
+  • Rules tab:
+      – view bundled / custom / imported rules
+      – enable / disable / delete
+      – create custom rules (template provided)
+      – import from URL or pasted text
+  • UI: light & dark themes (persisted via localStorage, pre-React no-flash
+    script in index.html). Chart.js defaults switch with the theme.
+  • Animated SVG logo: 4-node network mesh with an illuminated "N" and a
+    pulsing packet riding its diagonal. NADE letters spread across columns
+    so each letter sits above its full word (Network/Attack/Detection/Engine).
+
+--------------------------------------------------------------------------------
+5. DETECTION MODULES  (backend/detectors/)
+--------------------------------------------------------------------------------
+  • port_scan.py       — fan-out of unique dst ports from one src
+  • syn_flood.py       — high-rate TCP SYN bursts to a single target
+  • dns_tunneling.py   — long / high-entropy DNS labels, oversized TXT
+  • brute_force.py     — repeated auth attempts (SSH, FTP, RDP, HTTP basic)
+  • beaconing.py       — periodic outbound connections from one src to one
+                         dst. By default filters BEACON_STANDARD_PORTS
+                         (80,443,22,53,25,110,143,465,587,993,995,3306,
+                         3389,5432,6379,27017) to suppress browser noise.
+                         Override with env  NADE_BEACON_INCLUDE_STANDARD=1
+  • arp_spoof.py       — multiple MACs claiming the same IP
+  • malware_traffic.py — IOC-list match (domains / IPs / JA3) hook
+
+Each detector returns Alert(severity, category, title, src_ip, dst_ip,
+mitre_id, evidence). Severities: critical / high / medium / low.
+
+Tests: backend/tests/test_detectors.py  (7 cases, all passing)
+  pytest -q   →   7 passed
+
+--------------------------------------------------------------------------------
+6. DATABASE
+--------------------------------------------------------------------------------
+SQLite file:  backend/data/nade.db   (auto-created on first run)
+
+Tables
+  uploads          id, filename, path, status, packet_count, created_at
+  packets          id, upload_id, ts, src_ip, dst_ip, proto, sport, dport, len
+  flows            id, upload_id, 5-tuple, first_ts, last_ts, byte counts
+  alerts           id, upload_id, ts, severity, category, title, src_ip,
+                   dst_ip, mitre_id, evidence (JSON)
+  rules            id, sid, name, category, source, enabled, mitre_id,
+                   rule_text       (source ∈ bundled | custom | imported)
+
+Suricata-generated alerts are prefixed in `category` with `suricata:` so a
+re-run can `DELETE FROM alerts WHERE upload_id=? AND category LIKE 'suricata:%'`
+before re-inserting (prevents duplicates).
+
+--------------------------------------------------------------------------------
+7. REST API   (backend/api/main.py — base http://localhost:8000)
+--------------------------------------------------------------------------------
+Uploads
+  POST   /api/upload                       multipart file upload
+  GET    /api/uploads                      list uploads
+  DELETE /api/uploads/{id}                 cascade delete
+  GET    /api/uploads/{id}/download        stream stored PCAP
+                                           (409 if live session still active)
+
+Analytics
+  GET    /api/alerts?upload_id=&limit=
+  GET    /api/summary?upload_id=
+  GET    /api/timeline?upload_id=&buckets=
+
+Reports
+  GET    /api/report/{upload_id}?format=html|json|pdf
+
+Suricata rules
+  GET    /api/rules
+  POST   /api/rules                        create custom rule
+  PATCH  /api/rules/{id}                   enable/disable
+  DELETE /api/rules/{id}
+  POST   /api/rules/import                 { url? , text? , source_label }
+  POST   /api/rules/run/{upload_id}        run Suricata on a stored PCAP
+
+Live sniffer
+  GET    /api/live/interfaces
+  GET    /api/live/status
+  POST   /api/live/start    body: { interface, bpf_filter?, with_suricata }
+  POST   /api/live/stop
+
+All list endpoints honour `?_=<ts>` cache-busting and return JSON.
+
+--------------------------------------------------------------------------------
+8. REPORTING
+--------------------------------------------------------------------------------
+Each report contains:
+  • Executive summary  — counts, top categories, top sources/destinations
+  • IOC list           — unique src/dst IPs, ports, signatures
+  • MITRE ATT&CK map   — alerts grouped by technique ID
+  • Per-alert detail   — severity, evidence JSON
+  • Remediation hints  — derived from category
+
+Formats
+  • HTML — Jinja2 template, themed
+  • JSON — full machine-readable dump
+  • PDF  — WeasyPrint render of the HTML template
+
+--------------------------------------------------------------------------------
+9. FRONTEND  (see frontend/src/)
+--------------------------------------------------------------------------------
+Layout
+  • Sticky top bar with NADE logo (animated SVG mesh + spread wordmark),
+    theme toggle (☀ / ☾), and Upload PCAP button.
+  • Tab bar: Dashboard | Suricata Rules | Live Sniffer.
+
+Theming
+  • tailwind.config.js   darkMode: 'class' + custom brand 50-900 palette
+  • frontend/index.html  inline script reads localStorage('nade-theme')
+    before React mounts, so there is no flash of the wrong theme.
+  • useTheme.js          exposes { theme, toggleTheme, setTheme }; flips
+    the `dark` class on <html> and persists the choice.
+  • Chart.js defaults    rewired on theme change so axes / legends are
+    readable on both light and dark backgrounds.
+
+Component classes (frontend/src/index.css)
+  .nade-card        white / slate-900 card, rounded-xl, soft shadow
+  .nade-input       themed inputs / selects
+  .nade-btn         base button
+  .nade-btn-primary brand-blue solid
+  .nade-btn-ghost   neutral slate
+  .nade-btn-success emerald
+  .nade-btn-danger  rose
+  .nade-tab/-active/-inactive
+  .nade-pill        small uppercase badge
+
+Logo (App.jsx → Logo + NetworkMark)
+  • 11×11 rounded-xl gradient tile (brand → violet).
+  • Inside: SVG mesh where the three bold strokes trace an "N"
+    (left vertical, top-left → bottom-right diagonal, right vertical),
+    plus faint dashed cross-links for network feel.
+  • Four corner nodes act as network hosts.
+  • A small white dot animates along the N's diagonal to suggest live
+    packet flow. Subtle scan-line backdrop adds depth.
+  • Word "NADE" rendered in a 4-column grid; under each letter sits the
+    matching full word in spaced uppercase: NETWORK / ATTACK /
+    DETECTION / ENGINE.
+
+Refresh UX
+  • Every tab has its own Refresh button.
+  • Uses fetch with `cache: 'no-store'` and `?_=<Date.now()>`.
+  • Spinner icon + "refreshed Xs ago" timestamp.
+  • Live tab also polls /api/live/status every 2.5 s silently in the
+    background (no spinner) while a manual click flips the spinner.
+
+--------------------------------------------------------------------------------
+10. RUN INSTRUCTIONS
+--------------------------------------------------------------------------------
+First time
+  cd backend
+  python3.14 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  brew install suricata          # macOS; Linux: apt install suricata
+
+  cd ../frontend
+  npm install
+
+Run backend
+  cd backend
+  source .venv/bin/activate
+  uvicorn api.main:app --reload --port 8000
+  # for live sniffer, run with sudo OR grant cap_net_raw to python
+
+Run frontend
+  cd frontend
+  npm run dev          # http://localhost:5173 (proxies /api → :8000)
+
+Build for prod
+  cd frontend && npm run build      # → dist/
+
+Run tests
+  cd backend && pytest -q           # 7 passed
+
+--------------------------------------------------------------------------------
+11. ENVIRONMENT VARIABLES
+--------------------------------------------------------------------------------
+  NADE_BEACON_INCLUDE_STANDARD=1   include 80/443/22… in beaconing detector
+  NADE_DB_URL                      override SQLite path
+  NADE_SURICATA_BIN                explicit suricata binary path
+
+--------------------------------------------------------------------------------
+12. TROUBLESHOOTING
+--------------------------------------------------------------------------------
+  • Live sniffer fails with "permission denied" / "unable to set caps":
+      → run uvicorn with sudo, or grant cap_net_raw (Linux):
+        sudo setcap cap_net_raw,cap_net_admin=eip $(readlink -f $(which python3.14))
+      The LiveView shows a red banner with this guidance.
+
+  • Re-running Suricata duplicates alerts:
+      → fixed; backend deletes prior `suricata:%` alerts before re-insert.
+
+  • Refresh button "does nothing":
+      → fixed; all GETs are cache-busted, the button has its own
+        `refreshing` state independent of background polling.
+
+  • Download PCAP returns 409:
+      → a live session is still recording to that file. Stop it first.
+
+  • Charts have white axes in dark mode:
+      → ChartJS defaults are refreshed when the theme toggles; if you add
+        a new chart, no extra wiring is needed.
+
+--------------------------------------------------------------------------------
+13. CHANGE LOG SUMMARY
+--------------------------------------------------------------------------------
+Phase  1–6   Core: parsers, detectors, DB, API, reports, basic UI.
+Phase  7     Threat-intel hook + MITRE mapping in reports.
+Phase  8     Suricata integration (rules CRUD, run on upload).
+Phase  9     Live sniffer (AsyncSniffer + PcapWriter), interfaces endpoint.
+Phase 10     Live Suricata side-by-side with Python detectors, eve.json tail.
+Phase 11     Delete upload, Download PCAP, per-tab Refresh w/ cache busting,
+             beaconing noise filter, duplicate-alert fix.
+Phase 12     Visual refresh: dark mode (Tailwind class), NADE branding,
+             component class system (.nade-*), Chart.js theme awareness.
+Phase 12.1   Logo: 4-column NADE wordmark with full-form spread underneath.
+Phase 12.2   Logo: animated SVG network mesh, then highlighted N inside the
+             mesh with glow + traveling packet pulse.
+
+================================================================================
+End of manual.
+================================================================================

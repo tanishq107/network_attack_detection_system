@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NADE Report — {{ upload.filename }}</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; color: #222; margin: 32px; }
+  h1 { border-bottom: 2px solid #333; padding-bottom: 8px; }
+  h2 { margin-top: 28px; color: #1f3a93; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f4f6fb; }
+  .sev-critical { background: #ffd6d6; }
+  .sev-high { background: #ffe2cc; }
+  .sev-medium { background: #fff5cc; }
+  .sev-low { background: #e6f5e6; }
+  code { background: #f4f4f4; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .meta { color: #666; font-size: 12px; }
+</style>
+</head>
+<body>
+  <h1>Network Attack Detection Report</h1>
+  <p class="meta">
+    File: <strong>{{ upload.filename }}</strong> &middot;
+    Uploaded: {{ upload.uploaded_at }} &middot;
+    Packets: {{ upload.packet_count }} &middot;
+    Generated: {{ generated_at }}
+  </p>
+
+  <h2>Executive Summary</h2>
+  <p><strong>Total alerts:</strong> {{ executive_summary.total_alerts }}</p>
+  <p><strong>By severity:</strong>
+    {% for sev, n in executive_summary.by_severity.items() %}
+      <span class="sev-{{ sev }}">&nbsp;{{ sev }}: {{ n }}&nbsp;</span>
+    {% endfor %}
+  </p>
+  <p><strong>By category:</strong>
+    {% for cat, n in executive_summary.by_category.items() %}
+      <code>{{ cat }}={{ n }}</code>
+    {% endfor %}
+  </p>
+
+  <h2>Indicators of Compromise (IOCs)</h2>
+  {% if iocs %}
+  <table>
+    <tr><th>Indicator</th><th>Hits</th></tr>
+    {% for i in iocs %}
+    <tr><td><code>{{ i.indicator }}</code></td><td>{{ i.hits }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>None.</p>{% endif %}
+
+  <h2>MITRE ATT&amp;CK Mapping</h2>
+  {% if mitre %}
+  <table>
+    <tr><th>ID</th><th>Tactic</th><th>Technique</th></tr>
+    {% for m in mitre %}
+    <tr><td><code>{{ m.id }}</code></td><td>{{ m.tactic }}</td><td>{{ m.technique }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>None.</p>{% endif %}
+
+  <h2>Alerts</h2>
+  {% if alerts %}
+  <table>
+    <tr>
+      <th>#</th><th>Severity</th><th>Category</th><th>Title</th>
+      <th>Source</th><th>Destination</th><th>MITRE</th><th>Description</th>
+    </tr>
+    {% for a in alerts %}
+    <tr class="sev-{{ a.severity }}">
+      <td>{{ a.id }}</td>
+      <td>{{ a.severity }}</td>
+      <td><code>{{ a.category }}</code></td>
+      <td>{{ a.title }}</td>
+      <td>{{ a.src_ip or '' }}</td>
+      <td>{{ a.dst_ip or '' }}</td>
+      <td>{{ a.mitre_id or '' }}</td>
+      <td>{{ a.description }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p>No alerts detected.</p>{% endif %}
+
+  <h2>Remediation Recommendations</h2>
+  {% if remediation %}
+  <ul>
+    {% for r in remediation %}
+    <li><strong>{{ r.category }}:</strong> {{ r.recommendation }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p>None.</p>{% endif %}
+</body>
+</html>

@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  html.dark body {
+    @apply bg-slate-950 text-slate-100;
+  }
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700;
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  .nade-card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-soft
+           dark:bg-slate-900 dark:border-slate-800;
+  }
+  .nade-input {
+    @apply bg-white border border-slate-300 rounded-md px-2 py-1 text-sm
+           text-slate-800 placeholder-slate-400
+           focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500
+           dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100
+           dark:placeholder-slate-500;
+  }
+  .nade-btn {
+    @apply inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .nade-btn-primary {
+    @apply nade-btn bg-brand-600 text-white hover:bg-brand-700
+           dark:bg-brand-500 dark:hover:bg-brand-400;
+  }
+  .nade-btn-ghost {
+    @apply nade-btn bg-slate-200 text-slate-700 hover:bg-slate-300
+           dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700;
+  }
+  .nade-btn-success {
+    @apply nade-btn bg-emerald-600 text-white hover:bg-emerald-700
+           dark:bg-emerald-500 dark:hover:bg-emerald-400;
+  }
+  .nade-btn-danger {
+    @apply nade-btn bg-rose-600 text-white hover:bg-rose-700
+           dark:bg-rose-500 dark:hover:bg-rose-400;
+  }
+  .nade-tab {
+    @apply px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors;
+  }
+  .nade-tab-active {
+    @apply border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300;
+  }
+  .nade-tab-inactive {
+    @apply border-transparent text-slate-500 hover:text-slate-800
+           dark:text-slate-400 dark:hover:text-slate-200;
+  }
+  .nade-pill {
+    @apply text-[10px] font-semibold uppercase tracking-wide
+           px-2 py-0.5 rounded-full;
+  }
+}
