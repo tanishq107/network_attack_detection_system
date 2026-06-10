@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160" role="img" aria-label="NADE — Network Attack Detection Engine">
+  <defs>
+    <!-- Tile gradient (brand blue → violet) -->
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#3b82f6"/>
+      <stop offset="55%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <!-- Wordmark gradient (matches in-app NADE letters) -->
+    <linearGradient id="wordmark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#2563eb"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+
+    <!-- Glow for the highlighted "N" inside the mesh -->
+    <filter id="nGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="0.7" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Subtle scan-line backdrop pattern -->
+    <pattern id="scanlines" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="none"/>
+      <line x1="0" y1="3" x2="6" y2="3" stroke="#ffffff" stroke-opacity="0.18" stroke-width="0.6"/>
+    </pattern>
+
+    <!-- Rounded clip for the tile so the scan-lines don't bleed -->
+    <clipPath id="tileClip">
+      <rect x="20" y="36" width="88" height="88" rx="18" ry="18"/>
+    </clipPath>
+  </defs>
+
+  <!-- ===== Logo tile ===== -->
+  <g clip-path="url(#tileClip)">
+    <rect x="20" y="36" width="88" height="88" rx="18" ry="18" fill="url(#tile)"/>
+    <rect x="20" y="36" width="88" height="88" fill="url(#scanlines)" opacity="0.55"/>
+  </g>
+  <rect x="20" y="36" width="88" height="88" rx="18" ry="18"
+        fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1"/>
+
+  <!-- ===== Network-mesh "N" ===== -->
+  <!-- coords are local to the tile (20,36) — N occupies the inner 32x32 grid -->
+  <g transform="translate(48 60)" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Faint mesh cross-links (network feel) -->
+    <path d="M0 0 L48 0"   stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+    <path d="M0 48 L48 48" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+    <path d="M0 48 L48 0"  stroke="#ffffff" stroke-opacity="0.25" stroke-width="1.6" stroke-dasharray="3 3.5"/>
+
+    <!-- Highlighted "N": left vertical, diagonal, right vertical -->
+    <g stroke="#ffffff" stroke-width="5" filter="url(#nGlow)">
+      <path d="M0 48 L0 0"/>
+      <path d="M0 0  L48 48"/>
+      <path d="M48 48 L48 0"/>
+    </g>
+
+    <!-- Endpoint nodes -->
+    <g fill="#ffffff">
+      <circle cx="0"  cy="0"  r="3.6"/>
+      <circle cx="48" cy="0"  r="3.6"/>
+      <circle cx="0"  cy="48" r="3.6"/>
+      <circle cx="48" cy="48" r="3.6"/>
+    </g>
+  </g>
+
+  <!-- ===== Wordmark ===== -->
+  <!-- N · A · D · E spread across columns, full form aligned beneath -->
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <!-- Big letters -->
+    <g fill="url(#wordmark)" font-weight="800" font-size="56" letter-spacing="-1" text-anchor="middle">
+      <text x="160" y="92">N</text>
+      <text x="240" y="92">A</text>
+      <text x="320" y="92">D</text>
+      <text x="400" y="92">E</text>
+    </g>
+    <!-- Full-form labels under each letter -->
+    <g fill="#64748b" font-weight="600" font-size="11" letter-spacing="2.4" text-anchor="middle">
+      <text x="160" y="116">NETWORK</text>
+      <text x="240" y="116">ATTACK</text>
+      <text x="320" y="116">DETECTION</text>
+      <text x="400" y="116">ENGINE</text>
+    </g>
+  </g>
+</svg>

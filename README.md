@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/logo.svg" alt="NADE — Network Attack Detection Engine" width="520">
+</p>
+
 # NADE — Network Attack Detection Engine
 
 A self-contained network security analytics platform that ingests **PCAP files**
@@ -24,7 +28,6 @@ dark themes.
 - **Dashboard** — totals, severity doughnut, category bar chart, alert
   timeline, per-alert table with severity pills. Charts re-theme with the UI.
 
-                                           |
 ---
 
 
