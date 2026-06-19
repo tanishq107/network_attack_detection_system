@@ -70,14 +70,6 @@ brew install node
 
 # Debian / Ubuntu
 sudo apt update && sudo apt install -y nodejs npm
-
-# Windows (winget)
-winget install OpenJS.NodeJS.LTS
-
-# Or via nvm (any OS) — recommended for managing multiple Node versions
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-# restart your shell, then:
-nvm install --lts
 ```
 
 Verify:
