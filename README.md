@@ -36,6 +36,7 @@ dark themes.
 ### 1. Backend
 
 ```bash
+# from the project root (the folder that contains backend/ and frontend/)
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
@@ -46,13 +47,22 @@ brew install suricata
 # Debian/Ubuntu
 sudo apt install suricata
 
-sudo uvicorn api.main:app --reload --port 8000
+# IMPORTANT: run uvicorn from the PROJECT ROOT, not from inside backend/.
+# The code uses absolute imports (`from backend.config import …`), so the
+# parent of backend/ must be on Python's path.
+cd ..
+sudo backend/.venv/bin/uvicorn backend.api.main:app --reload --port 8000
 ```
 
 Interactive API docs at **http://localhost:8000/docs**.
 
-> **Live sniffer requires raw-socket privileges.** Run uvicorn with `sudo`, or
-> grant the Python binary `cap_net_raw` on Linux:
+> **Why `sudo` + the explicit venv path?** Live capture needs raw-socket
+> privileges, and after `sudo` your shell's `PATH` no longer points at the
+> venv. Using `backend/.venv/bin/uvicorn` guarantees the right binary runs.
+> If you do not need the live sniffer, you can drop the `sudo` and just run
+> `uvicorn backend.api.main:app --reload --port 8000` from the project root.
+
+> **Linux alternative — grant `cap_net_raw` instead of using `sudo`:**
 >
 > ```bash
 > sudo setcap cap_net_raw,cap_net_admin=eip "$(readlink -f "$(which python3)")"
