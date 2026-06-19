@@ -236,6 +236,14 @@ def summary(
     packet_count = db.execute(pkt_stmt).scalar_one()
     flow_count = db.execute(flow_stmt).scalar_one()
 
+    # Live captures stream packets to a PCAP file but do not insert per-packet
+    # rows into the `packets` table, so the count above is 0 for them. Fall
+    # back to the running tally stored on the Upload row in that case.
+    if upload_id is not None and packet_count == 0:
+        upload_row = db.get(models.Upload, upload_id)
+        if upload_row and upload_row.packet_count:
+            packet_count = upload_row.packet_count
+
     return {
         "upload_id": upload_id,
         "totals": {

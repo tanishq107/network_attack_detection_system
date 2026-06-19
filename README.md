@@ -61,6 +61,26 @@ Interactive API docs at **http://localhost:8000/docs**.
 
 ### 2. Frontend
 
+The dashboard needs **Node.js 18+** (which ships `npm`). If it isn't already
+installed, install it once per machine:
+
+```bash
+# macOS (Homebrew)
+brew install node
+
+# Debian / Ubuntu
+sudo apt update && sudo apt install -y nodejs npm
+```
+
+Verify:
+
+```bash
+node -v        # should print v18.x or newer
+npm  -v
+```
+
+Then install the project's JS dependencies and start the dev server:
+
 ```bash
 cd frontend
 npm install

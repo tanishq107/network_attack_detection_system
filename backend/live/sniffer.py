@@ -359,6 +359,24 @@ class LiveSniffer:
                 db.commit()
             self.alert_count += len(fresh)
 
+        # Keep the Upload row's packet_count + size_bytes in sync so the
+        # Dashboard's totals tile and uploads dropdown reflect live progress
+        # without waiting for the user to press Stop.
+        if self.upload_id is not None:
+            try:
+                with SessionLocal() as db:
+                    u = db.get(models.Upload, self.upload_id)
+                    if u is not None:
+                        u.packet_count = self.packet_count
+                        if self._pcap_path is not None and self._pcap_path.exists():
+                            try:
+                                u.size_bytes = self._pcap_path.stat().st_size
+                            except OSError:
+                                pass
+                        db.commit()
+            except Exception as exc:  # pragma: no cover
+                log.debug("live packet_count sync failed: %s", exc)
+
         self.last_scan_at = time.time()
 
     def _mark_upload_status(self, status: str) -> None:
