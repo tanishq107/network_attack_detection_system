@@ -171,7 +171,3 @@ Each detector returns alerts with severity, MITRE technique ID, and evidence.
   has its own spinner independent of background polling.
 
 ---
-
-## License
-
-MIT — see [LICENSE](LICENSE).
