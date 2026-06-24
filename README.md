@@ -43,8 +43,9 @@ pip install -r requirements.txt
 
 # macOS
 brew install suricata
+
 # Debian/Ubuntu
-sudo apt install suricata
+sudo apt update && apt install suricata
 
 cd ..
 sudo backend/.venv/bin/uvicorn backend.api.main:app --reload --port 8000
